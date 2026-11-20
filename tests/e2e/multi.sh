@@ -15,7 +15,9 @@ RT=${ZPORTFORWARD_RUNTIME:-docker}
 A=zportforward-multi-a-$$
 B=zportforward-multi-b-$$
 WORK=$(mktemp -d)
-export ZPORTFORWARD_UI_PORT=44801
+# Test ports stay below 32768; higher ones can be taken at any moment as the
+# source port of an outgoing connection.
+export ZPORTFORWARD_UI_PORT=14480
 UI=http://127.0.0.1:$ZPORTFORWARD_UI_PORT
 
 pass() { echo "ok   - $*"; }
@@ -65,7 +67,9 @@ project "$B"
 # --- many clients start the daemon at the same moment
 for _ in $(seq 12); do "$BIN" ls --json >/dev/null 2>&1 & done
 wait
-[ "$(daemons)" = 1 ] || fail "expected one daemon, found $(daemons)"
+# Daemons that lost the race are still exiting for a moment.
+one_daemon() { [ "$(daemons)" = 1 ]; }
+eventually 5 one_daemon || fail "expected one daemon, found $(daemons)"
 holders=$(ss -tlnp 2>/dev/null | grep '"zportforward"' | grep -oE 'pid=[0-9]+' | sort -u | wc -l)
 [ "$holders" = 1 ] || fail "$holders processes hold zportforward ports"
 pass "12 simultaneous clients start exactly one daemon"
@@ -84,6 +88,13 @@ says 18098 "$A" || fail "cwd-selected forward reached the wrong container"
 if (cd / && "$BIN" add 8098 2>/dev/null); then fail "ambiguous request was accepted"; fi
 (cd / && "$BIN" add 8098 2>&1 || true) | grep -q "$WORK/$B" || fail "ambiguity error does not list the project folders"
 pass "the project directory selects the container; elsewhere the request is refused with the choices"
+
+# --- a request that cannot be met changes nothing
+"$BIN" add 8098:17001 -c "$B" >/dev/null
+if "$BIN" add 8098:17001 -c "$A" 2>/dev/null; then fail "a host port in use was handed out twice"; fi
+says 18098 "$A" || fail "a failed re-add dropped the existing forward"
+"$BIN" rm 8098 -c "$B" >/dev/null
+pass "asking for a host port that is taken fails and keeps the existing forward"
 
 # --- three editor windows act at the same moment
 (cd / && mcp forward_port "{\"port\":8098,\"host_port\":28098,\"container\":\"$B\"}" >/dev/null) &
@@ -108,17 +119,17 @@ pass "a client with auto enabled switches the running daemon to auto mode"
 post() { curl -s -m 5 -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' "$@"; }
 curl -s -m 3 "$UI/" | grep -q "<title>zportforward ports</title>" || fail "ports page not served"
 [ "$("$BIN" ui --no-open)" = "$UI/" ] || fail "zportforward ui prints the wrong address"
-[ "$(post -H 'x-zportforward: 1' -d "{\"container\":\"$A\",\"port\":8098,\"host_port\":38098}" "$UI/api/forward")" = 200 ] || fail "forward through the page"
-says 38098 "$A" || fail "page forward reached the wrong container"
+[ "$(post -H 'x-zportforward: 1' -d "{\"container\":\"$A\",\"port\":8098,\"host_port\":18097}" "$UI/api/forward")" = 200 ] || fail "forward through the page"
+says 18097 "$A" || fail "page forward reached the wrong container"
 [ "$(post -H 'x-zportforward: 1' -d "{\"container\":\"$A\",\"port\":8098}" "$UI/api/stop")" = 200 ] || fail "stop through the page"
-closed 38098 || fail "port still open after stopping it on the page"
+closed 18097 || fail "port still open after stopping it on the page"
 pass "the ports page lists, forwards and stops"
-body="{\"container\":\"$A\",\"port\":8098,\"host_port\":38098}"
+body="{\"container\":\"$A\",\"port\":8098,\"host_port\":18097}"
 [ "$(post -d "$body" "$UI/api/forward")" = 403 ] || fail "POST without the X-Zportforward header was accepted"
 [ "$(post -H 'x-zportforward: 1' -H 'Origin: http://evil.example' -d "$body" "$UI/api/forward")" = 403 ] || fail "cross-origin POST was accepted"
 [ "$(post -H 'x-zportforward: 1' -H 'Host: evil.example' -d "$body" "$UI/api/forward")" = 403 ] || fail "foreign Host header was accepted"
 [ "$(curl -s -m 3 -o /dev/null -w '%{http_code}' -H 'Host: evil.example' "$UI/api/state")" = 403 ] || fail "state readable under a foreign Host"
-closed 38098 || fail "a refused request still opened a port"
+closed 18097 || fail "a refused request still opened a port"
 pass "the page refuses cross-site and rebinding requests"
 
 exposed=$(ss -tlnp 2>/dev/null | grep '"zportforward"' | grep -vc '127\.0\.0\.1:' || true)
@@ -132,5 +143,6 @@ says 28098 "$B" || fail "the other container's forward broke"
 pass "removing one container closes only its forwards"
 
 "$BIN" stop >/dev/null
-[ "$(daemons)" = 0 ] || fail "daemon still running after stop"
+no_daemon() { [ "$(daemons)" = 0 ]; }
+eventually 5 no_daemon || fail "daemon still running after stop"
 echo "all multi-window checks passed"

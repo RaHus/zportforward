@@ -374,21 +374,21 @@ impl Daemon {
                 ));
             }
         }
-        m.forwards.remove(&target); // frees the old host port before rebinding
+        // Bind the new host port before giving up the current forward, so a
+        // request that fails leaves things as they were.
+        let strict = host_port.is_some() || m.config.attrs(target.port).require_local_port;
+        let (listener, bound) = match forwards::bind(host_port.unwrap_or(target.port), strict).await {
+            Ok(bound) => bound,
+            Err(reason) => bail!("{reason}; choose a different host port for container port {port}"),
+        };
+        let task = forwards::spawn(listener, m.slot.clone(), target.clone());
         m.suppressed.remove(&target);
-        m.start(target.clone(), Origin::Manual, host_port).await;
-        match &m.forwards[&target].state {
-            State::Active { host_port, .. } => Ok(format!(
-                "{}: {} -> 127.0.0.1:{host_port}",
-                m.container.name,
-                forwards::describe(&target)
-            )),
-            State::Error(reason) => {
-                let reason = reason.clone();
-                m.forwards.remove(&target);
-                bail!("{reason}; choose a different host port for container port {port}")
-            }
-        }
+        // Replacing the entry closes the previous host listener, if any.
+        m.forwards.insert(
+            target.clone(),
+            Forward { origin: Origin::Manual, state: State::Active { host_port: bound, task }, wanted_host_port: host_port },
+        );
+        Ok(format!("{}: {} -> 127.0.0.1:{bound}", m.container.name, forwards::describe(&target)))
     }
 
     fn remove(&mut self, reference: Option<&str>, cwd: Option<&std::path::Path>, port: u16) -> Result<String> {
