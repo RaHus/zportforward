@@ -1,0 +1,20 @@
+id = "devfwd"
+name = "devfwd"
+description = "Port forwarding for dev containers: forwardPorts work automatically, plus a ports page and agent tools to forward ports on the fly."
+version = "0.1.0"
+schema_version = 1
+authors = ["RamiC"]
+repository = "https://github.com/RaHus/devfwd"
+
+[context_servers.devfwd]
+name = "devfwd"
+
+[slash_commands.ports]
+description = "Open the devfwd ports page"
+requires_argument = false
+
+# `/ports` runs the downloaded devfwd binary as `devfwd ui` to open the page.
+[[capabilities]]
+kind = "process:exec"
+command = "*"
+args = ["ui"]

@@ -1,0 +1,91 @@
+# Pushing a tag like v0.1.0 builds devfwd for every platform and publishes a
+# GitHub release. The Zed extension downloads these assets by name:
+#   devfwd-<target>.tar.gz   (devfwd-<target>.zip on Windows)
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  # The agent only ever runs on Linux; build it once and embed it everywhere.
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+      - name: Build agents
+        run: |
+          mkdir agents
+          for arch in x86_64 aarch64; do
+            target=$arch-unknown-linux-musl
+            var=CARGO_TARGET_$(echo "$target" | tr 'a-z-' 'A-Z_')_LINKER
+            env "$var=rust-lld" cargo build --release -p devfwd-agent --target "$target"
+            cp "target/$target/release/devfwd-agent" "agents/devfwd-agent-$arch"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agents
+          path: agents
+
+  build:
+    needs: agent
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux binaries are static (musl), so they run on any distribution.
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-musl, lld: true }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-musl, lld: true }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: macos-latest, target: x86_64-apple-darwin }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: agents
+          path: agents
+      - name: Configure the build
+        shell: bash
+        run: |
+          echo "DEVFWD_AGENT_DIR=$PWD/agents" >> "$GITHUB_ENV"
+          if [ "${{ matrix.lld }}" = "true" ]; then
+            var=CARGO_TARGET_$(echo "${{ matrix.target }}" | tr 'a-z-' 'A-Z_')_LINKER
+            echo "$var=rust-lld" >> "$GITHUB_ENV"
+          fi
+      - run: cargo build --release --locked -p devfwd --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          cd "target/${{ matrix.target }}/release"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a "$GITHUB_WORKSPACE/devfwd-${{ matrix.target }}.zip" devfwd.exe
+          else
+            tar czf "$GITHUB_WORKSPACE/devfwd-${{ matrix.target }}.tar.gz" devfwd
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: devfwd-${{ matrix.target }}
+          path: devfwd-${{ matrix.target }}.*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: devfwd-*
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" devfwd-* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
