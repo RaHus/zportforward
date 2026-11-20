@@ -1,12 +1,12 @@
 [package]
-name = "devfwd-agent"
+name = "zportforward-agent"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
 anyhow = "1.0.104"
-devfwd-proto = { version = "0.1.0", path = "../proto" }
+zportforward-proto = { version = "0.1.0", path = "../proto" }
 futures = "0.3.34"
 tokio = { version = "1.54.1", features = ["rt", "io-std", "io-util", "net", "time", "macros", "sync"] }
 tokio-util = { version = "0.7.20", features = ["compat"] }

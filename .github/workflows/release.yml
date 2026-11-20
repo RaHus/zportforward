@@ -1,6 +1,6 @@
-# Pushing a tag like v0.1.0 builds devfwd for every platform and publishes a
+# Pushing a tag like v0.1.0 builds zportforward for every platform and publishes a
 # GitHub release. The Zed extension downloads these assets by name:
-#   devfwd-<target>.tar.gz   (devfwd-<target>.zip on Windows)
+#   zportforward-<target>.tar.gz   (zportforward-<target>.zip on Windows)
 name: release
 on:
   push:
@@ -24,8 +24,8 @@ jobs:
           for arch in x86_64 aarch64; do
             target=$arch-unknown-linux-musl
             var=CARGO_TARGET_$(echo "$target" | tr 'a-z-' 'A-Z_')_LINKER
-            env "$var=rust-lld" cargo build --release -p devfwd-agent --target "$target"
-            cp "target/$target/release/devfwd-agent" "agents/devfwd-agent-$arch"
+            env "$var=rust-lld" cargo build --release -p zportforward-agent --target "$target"
+            cp "target/$target/release/zportforward-agent" "agents/zportforward-agent-$arch"
           done
       - uses: actions/upload-artifact@v4
         with:
@@ -57,25 +57,25 @@ jobs:
       - name: Configure the build
         shell: bash
         run: |
-          echo "DEVFWD_AGENT_DIR=$PWD/agents" >> "$GITHUB_ENV"
+          echo "ZPORTFORWARD_AGENT_DIR=$PWD/agents" >> "$GITHUB_ENV"
           if [ "${{ matrix.lld }}" = "true" ]; then
             var=CARGO_TARGET_$(echo "${{ matrix.target }}" | tr 'a-z-' 'A-Z_')_LINKER
             echo "$var=rust-lld" >> "$GITHUB_ENV"
           fi
-      - run: cargo build --release --locked -p devfwd --target ${{ matrix.target }}
+      - run: cargo build --release --locked -p zportforward --target ${{ matrix.target }}
       - name: Package
         shell: bash
         run: |
           cd "target/${{ matrix.target }}/release"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            7z a "$GITHUB_WORKSPACE/devfwd-${{ matrix.target }}.zip" devfwd.exe
+            7z a "$GITHUB_WORKSPACE/zportforward-${{ matrix.target }}.zip" zportforward.exe
           else
-            tar czf "$GITHUB_WORKSPACE/devfwd-${{ matrix.target }}.tar.gz" devfwd
+            tar czf "$GITHUB_WORKSPACE/zportforward-${{ matrix.target }}.tar.gz" zportforward
           fi
       - uses: actions/upload-artifact@v4
         with:
-          name: devfwd-${{ matrix.target }}
-          path: devfwd-${{ matrix.target }}.*
+          name: zportforward-${{ matrix.target }}
+          path: zportforward-${{ matrix.target }}.*
 
   publish:
     needs: build
@@ -83,9 +83,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: devfwd-*
+          pattern: zportforward-*
           merge-multiple: true
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" devfwd-* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" zportforward-* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes

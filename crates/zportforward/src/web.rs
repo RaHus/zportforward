@@ -6,7 +6,7 @@
 //!
 //! * the `Host` header must name this server on a loopback address, which
 //!   defeats DNS rebinding;
-//! * anything that changes state must be a POST carrying an `X-Devfwd`
+//! * anything that changes state must be a POST carrying an `X-Zportforward`
 //!   header (browsers refuse to send custom headers cross-site without a
 //!   CORS preflight, which is never granted) and, when the browser sends an
 //!   `Origin`, it must be this page's own.
@@ -33,10 +33,10 @@ const CSP: &str = "default-src 'none'; style-src 'unsafe-inline'; script-src 'un
 
 type Events = mpsc::Sender<Event>;
 
-/// Start serving and return the page's URL. `DEVFWD_UI_PORT` picks the port;
+/// Start serving and return the page's URL. `ZPORTFORWARD_UI_PORT` picks the port;
 /// `0` turns the page off.
 pub async fn start(events: Events) -> Option<String> {
-    let wanted = match std::env::var("DEVFWD_UI_PORT") {
+    let wanted = match std::env::var("ZPORTFORWARD_UI_PORT") {
         Ok(value) => value.parse().unwrap_or(DEFAULT_PORT),
         Err(_) => DEFAULT_PORT,
     };
@@ -72,7 +72,7 @@ async fn guard(State(port): State<u16>, request: HttpRequest, next: Next) -> Htt
     let host = text(header::HOST).unwrap_or_default();
     let mut allowed = host == format!("127.0.0.1:{port}") || host == format!("localhost:{port}");
     if request.method() != Method::GET {
-        allowed &= headers.contains_key("x-devfwd");
+        allowed &= headers.contains_key("x-zportforward");
         if let Some(origin) = text(header::ORIGIN) {
             allowed &= origin == format!("http://{host}");
         }

@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # Several editor windows and several dev containers at once.
 #
-#   tests/e2e/multi.sh [path/to/devfwd]
+#   tests/e2e/multi.sh [path/to/zportforward]
 #
 # Checks that clients starting the daemon at the same moment get exactly one,
 # that two containers wanting the same port both get a forward, that requests
 # reach the right container, and that the ports page enforces its guards.
-# It stops any running devfwd daemon first and leaves none running.
+# It stops any running zportforward daemon first and leaves none running.
 set -euo pipefail
 
-BIN=$(realpath "${1:-target/debug/devfwd}")
+BIN=$(realpath "${1:-target/debug/zportforward}")
 HERE=$(cd "$(dirname "$0")" && pwd)
-RT=${DEVFWD_RUNTIME:-docker}
-A=devfwd-multi-a-$$
-B=devfwd-multi-b-$$
+RT=${ZPORTFORWARD_RUNTIME:-docker}
+A=zportforward-multi-a-$$
+B=zportforward-multi-b-$$
 WORK=$(mktemp -d)
-export DEVFWD_UI_PORT=44801
-UI=http://127.0.0.1:$DEVFWD_UI_PORT
+export ZPORTFORWARD_UI_PORT=44801
+UI=http://127.0.0.1:$ZPORTFORWARD_UI_PORT
 
 pass() { echo "ok   - $*"; }
 fail() { echo "FAIL - $*" >&2; "$BIN" ls >&2 || true; exit 1; }
@@ -35,7 +35,7 @@ eventually() {
 }
 says() { [ "$(curl -s -m 2 "http://127.0.0.1:$1/")" = "$2" ]; }
 closed() { ! curl -s -m 2 -o /dev/null "http://127.0.0.1:$1/"; }
-daemons() { ps -C devfwd -o args= | grep -c ' daemon' || true; }
+daemons() { ps -C zportforward -o args= | grep -c ' daemon' || true; }
 mcp() { python3 "$HERE/mcp_call.py" "$BIN" "$@"; }
 host_port() { # container name, container port -> host port
     "$BIN" ls --json | python3 -c '
@@ -66,8 +66,8 @@ project "$B"
 for _ in $(seq 12); do "$BIN" ls --json >/dev/null 2>&1 & done
 wait
 [ "$(daemons)" = 1 ] || fail "expected one daemon, found $(daemons)"
-holders=$(ss -tlnp 2>/dev/null | grep '"devfwd"' | grep -oE 'pid=[0-9]+' | sort -u | wc -l)
-[ "$holders" = 1 ] || fail "$holders processes hold devfwd ports"
+holders=$(ss -tlnp 2>/dev/null | grep '"zportforward"' | grep -oE 'pid=[0-9]+' | sort -u | wc -l)
+[ "$holders" = 1 ] || fail "$holders processes hold zportforward ports"
 pass "12 simultaneous clients start exactly one daemon"
 
 # --- two containers declare the same port
@@ -100,28 +100,28 @@ pass "three concurrent agent clients each forward to the right container"
 
 # --- an editor configured with auto turns it on in the running daemon
 "$BIN" ls --json | grep -q '"auto": false' || fail "daemon unexpectedly in auto mode"
-(cd / && DEVFWD_AUTO=1 mcp list_ports >/dev/null)
+(cd / && ZPORTFORWARD_AUTO=1 mcp list_ports >/dev/null)
 eventually 5 sh -c "'$BIN' ls --json | grep -q '\"auto\": true'" || fail "auto mode was not turned on"
 pass "a client with auto enabled switches the running daemon to auto mode"
 
 # --- the ports page
 post() { curl -s -m 5 -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' "$@"; }
-curl -s -m 3 "$UI/" | grep -q "<title>devfwd ports</title>" || fail "ports page not served"
-[ "$("$BIN" ui --no-open)" = "$UI/" ] || fail "devfwd ui prints the wrong address"
-[ "$(post -H 'x-devfwd: 1' -d "{\"container\":\"$A\",\"port\":8098,\"host_port\":38098}" "$UI/api/forward")" = 200 ] || fail "forward through the page"
+curl -s -m 3 "$UI/" | grep -q "<title>zportforward ports</title>" || fail "ports page not served"
+[ "$("$BIN" ui --no-open)" = "$UI/" ] || fail "zportforward ui prints the wrong address"
+[ "$(post -H 'x-zportforward: 1' -d "{\"container\":\"$A\",\"port\":8098,\"host_port\":38098}" "$UI/api/forward")" = 200 ] || fail "forward through the page"
 says 38098 "$A" || fail "page forward reached the wrong container"
-[ "$(post -H 'x-devfwd: 1' -d "{\"container\":\"$A\",\"port\":8098}" "$UI/api/stop")" = 200 ] || fail "stop through the page"
+[ "$(post -H 'x-zportforward: 1' -d "{\"container\":\"$A\",\"port\":8098}" "$UI/api/stop")" = 200 ] || fail "stop through the page"
 closed 38098 || fail "port still open after stopping it on the page"
 pass "the ports page lists, forwards and stops"
 body="{\"container\":\"$A\",\"port\":8098,\"host_port\":38098}"
-[ "$(post -d "$body" "$UI/api/forward")" = 403 ] || fail "POST without the X-Devfwd header was accepted"
-[ "$(post -H 'x-devfwd: 1' -H 'Origin: http://evil.example' -d "$body" "$UI/api/forward")" = 403 ] || fail "cross-origin POST was accepted"
-[ "$(post -H 'x-devfwd: 1' -H 'Host: evil.example' -d "$body" "$UI/api/forward")" = 403 ] || fail "foreign Host header was accepted"
+[ "$(post -d "$body" "$UI/api/forward")" = 403 ] || fail "POST without the X-Zportforward header was accepted"
+[ "$(post -H 'x-zportforward: 1' -H 'Origin: http://evil.example' -d "$body" "$UI/api/forward")" = 403 ] || fail "cross-origin POST was accepted"
+[ "$(post -H 'x-zportforward: 1' -H 'Host: evil.example' -d "$body" "$UI/api/forward")" = 403 ] || fail "foreign Host header was accepted"
 [ "$(curl -s -m 3 -o /dev/null -w '%{http_code}' -H 'Host: evil.example' "$UI/api/state")" = 403 ] || fail "state readable under a foreign Host"
 closed 38098 || fail "a refused request still opened a port"
 pass "the page refuses cross-site and rebinding requests"
 
-exposed=$(ss -tlnp 2>/dev/null | grep '"devfwd"' | grep -vc '127\.0\.0\.1:' || true)
+exposed=$(ss -tlnp 2>/dev/null | grep '"zportforward"' | grep -vc '127\.0\.0\.1:' || true)
 [ "$exposed" = 0 ] || fail "$exposed listener(s) not bound to 127.0.0.1"
 pass "every listener, including the page, is bound to 127.0.0.1"
 

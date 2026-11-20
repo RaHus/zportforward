@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime};
 
 use anyhow::{bail, Result};
-use devfwd_proto::Listener;
+use zportforward_proto::Listener;
 use interprocess::local_socket::tokio::{prelude::*, Stream};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::{mpsc, oneshot};
@@ -414,7 +414,7 @@ pub async fn run(auto: bool, on_demand: bool) -> Result<()> {
         if on_demand {
             return Ok(()); // another client won the race to start it
         }
-        bail!("a devfwd daemon is already running");
+        bail!("a zportforward daemon is already running");
     }
     let rt = Runtime::detect().await?;
     let listener = control::listen()?;

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # End-to-end test against a real container runtime.
 #
-#   tests/e2e/run.sh [path/to/devfwd]
+#   tests/e2e/run.sh [path/to/zportforward]
 #
 # Starts a throwaway container labelled as a dev container, runs the daemon
 # with --auto, and checks forwarding, removal, restart recovery and cleanup.
-# It stops any running devfwd daemon first and leaves none running.
+# It stops any running zportforward daemon first and leaves none running.
 set -euo pipefail
 
-BIN=$(realpath "${1:-target/debug/devfwd}")
-RT=${DEVFWD_RUNTIME:-docker}
-NAME=devfwd-e2e-$$
+BIN=$(realpath "${1:-target/debug/zportforward}")
+RT=${ZPORTFORWARD_RUNTIME:-docker}
+NAME=zportforward-e2e-$$
 LOG=$(mktemp)
 
 pass() { echo "ok   - $*"; }
@@ -66,7 +66,7 @@ eventually 30 serves 18098 || fail "manual forward did not recover after contain
 pass "manual forward survives a container restart"
 
 if command -v ss >/dev/null; then
-    exposed=$(ss -tlnp 2>/dev/null | grep '"devfwd"' | grep -vc '127\.0\.0\.1:' || true)
+    exposed=$(ss -tlnp 2>/dev/null | grep '"zportforward"' | grep -vc '127\.0\.0\.1:' || true)
     [ "$exposed" = 0 ] || fail "$exposed listener(s) not bound to 127.0.0.1"
     pass "every host listener is bound to 127.0.0.1"
 fi

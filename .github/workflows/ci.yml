@@ -18,8 +18,8 @@ jobs:
           for arch in x86_64 aarch64; do
             target=$arch-unknown-linux-musl
             var=CARGO_TARGET_$(echo "$target" | tr 'a-z-' 'A-Z_')_LINKER
-            env "$var=rust-lld" cargo build --release -p devfwd-agent --target "$target"
-            cp "target/$target/release/devfwd-agent" "agents/devfwd-agent-$arch"
+            env "$var=rust-lld" cargo build --release -p zportforward-agent --target "$target"
+            cp "target/$target/release/zportforward-agent" "agents/zportforward-agent-$arch"
           done
       - uses: actions/upload-artifact@v4
         with:
@@ -49,20 +49,20 @@ jobs:
           path: agents
       - name: Point the build at the prebuilt agents
         shell: bash
-        run: echo "DEVFWD_AGENT_DIR=$PWD/agents" >> "$GITHUB_ENV"
+        run: echo "ZPORTFORWARD_AGENT_DIR=$PWD/agents" >> "$GITHUB_ENV"
       - run: cargo test --workspace
-      - run: cargo build --release -p devfwd --target ${{ matrix.target }}
+      - run: cargo build --release -p zportforward --target ${{ matrix.target }}
       - name: End-to-end
         if: matrix.e2e
         run: |
-          tests/e2e/run.sh target/${{ matrix.target }}/release/devfwd
-          tests/e2e/multi.sh target/${{ matrix.target }}/release/devfwd
+          tests/e2e/run.sh target/${{ matrix.target }}/release/zportforward
+          tests/e2e/multi.sh target/${{ matrix.target }}/release/zportforward
       - uses: actions/upload-artifact@v4
         with:
-          name: devfwd-${{ matrix.target }}
+          name: zportforward-${{ matrix.target }}
           path: |
-            target/${{ matrix.target }}/release/devfwd
-            target/${{ matrix.target }}/release/devfwd.exe
+            target/${{ matrix.target }}/release/zportforward
+            target/${{ matrix.target }}/release/zportforward.exe
 
   extension:
     runs-on: ubuntu-latest

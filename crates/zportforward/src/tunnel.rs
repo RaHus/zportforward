@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context, Result};
-use devfwd_proto::{self as proto, ControlMsg, Listener, Mode, Opener, Stream};
+use zportforward_proto::{self as proto, ControlMsg, Listener, Mode, Opener, Stream};
 use futures::AsyncReadExt;
 use tokio::process::Child;
 use tokio::sync::{mpsc, oneshot, watch};
@@ -25,7 +25,7 @@ mod agents {
 
 /// Where the agent may be placed inside the container, in order of preference.
 /// `$HOME` is expanded by the container's shell.
-const INSTALL_DIRS: [&str; 2] = ["/tmp/.devfwd", "$HOME/.cache/devfwd"];
+const INSTALL_DIRS: [&str; 2] = ["/tmp/.zportforward", "$HOME/.cache/zportforward"];
 const HELLO_TIMEOUT: Duration = Duration::from_secs(20);
 const SNAPSHOT_TIMEOUT: Duration = Duration::from_secs(3);
 
@@ -158,7 +158,7 @@ impl Tunnel {
 /// Make sure the right agent binary is in the container; returns its path there.
 async fn install(rt: &Runtime, cid: &str) -> Result<String> {
     let arch = rt.output(&["exec", cid, "uname", "-m"]).await?;
-    let bytes: Cow<'static, [u8]> = match std::env::var_os("DEVFWD_AGENT_PATH") {
+    let bytes: Cow<'static, [u8]> = match std::env::var_os("ZPORTFORWARD_AGENT_PATH") {
         Some(path) => Cow::Owned(std::fs::read(&path).with_context(|| format!("reading {path:?}"))?),
         None => Cow::Borrowed(match arch.as_str() {
             "x86_64" | "amd64" => agents::X86_64,
@@ -167,7 +167,7 @@ async fn install(rt: &Runtime, cid: &str) -> Result<String> {
         }),
     };
     if bytes.is_empty() {
-        bail!("this build has no agent for {arch}; set DEVFWD_AGENT_PATH to a devfwd-agent binary");
+        bail!("this build has no agent for {arch}; set ZPORTFORWARD_AGENT_PATH to a zportforward-agent binary");
     }
     // Content-addressed so upgrades never run a stale agent and never re-upload.
     let name = format!("agent-{:016x}", fnv1a(&bytes));

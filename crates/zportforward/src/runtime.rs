@@ -15,9 +15,9 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    /// `DEVFWD_RUNTIME` if set, otherwise the first of `docker`, `podman` that runs.
+    /// `ZPORTFORWARD_RUNTIME` if set, otherwise the first of `docker`, `podman` that runs.
     pub async fn detect() -> Result<Self> {
-        if let Ok(bin) = std::env::var("DEVFWD_RUNTIME") {
+        if let Ok(bin) = std::env::var("ZPORTFORWARD_RUNTIME") {
             return Ok(Self { bin });
         }
         for bin in ["docker", "podman"] {
@@ -34,7 +34,7 @@ impl Runtime {
                 return Ok(Self { bin: bin.into() });
             }
         }
-        bail!("neither docker nor podman found on PATH (set DEVFWD_RUNTIME to override)")
+        bail!("neither docker nor podman found on PATH (set ZPORTFORWARD_RUNTIME to override)")
     }
 
     pub fn command(&self) -> Command {

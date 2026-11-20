@@ -1,7 +1,7 @@
 //! Builds the in-container agent for the Linux musl targets and embeds it.
 //!
-//! Set `DEVFWD_AGENT_DIR` to a directory holding prebuilt `devfwd-agent-x86_64`
-//! and `devfwd-agent-aarch64` to skip the nested build (used in CI).
+//! Set `ZPORTFORWARD_AGENT_DIR` to a directory holding prebuilt `zportforward-agent-x86_64`
+//! and `zportforward-agent-aarch64` to skip the nested build (used in CI).
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -13,22 +13,22 @@ const ARCHES: [(&str, &str); 2] =
 fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    println!("cargo:rerun-if-env-changed=DEVFWD_AGENT_DIR");
+    println!("cargo:rerun-if-env-changed=ZPORTFORWARD_AGENT_DIR");
     for dir in ["crates/agent/src", "crates/agent/Cargo.toml", "crates/proto/src", "Cargo.toml"] {
         println!("cargo:rerun-if-changed={}", workspace.join(dir).display());
     }
 
     let mut generated = String::new();
     for (arch, target) in ARCHES {
-        let dest = out_dir.join(format!("devfwd-agent-{arch}"));
-        let found = match env::var_os("DEVFWD_AGENT_DIR") {
-            Some(dir) => fs::copy(Path::new(&dir).join(format!("devfwd-agent-{arch}")), &dest).is_ok(),
+        let dest = out_dir.join(format!("zportforward-agent-{arch}"));
+        let found = match env::var_os("ZPORTFORWARD_AGENT_DIR") {
+            Some(dir) => fs::copy(Path::new(&dir).join(format!("zportforward-agent-{arch}")), &dest).is_ok(),
             None => build_agent(&workspace, &out_dir, target, &dest),
         };
         if !found {
             println!(
                 "cargo:warning=no agent for {arch}: containers of that architecture will need \
-                 DEVFWD_AGENT_PATH (hint: rustup target add {target})"
+                 ZPORTFORWARD_AGENT_PATH (hint: rustup target add {target})"
             );
             fs::write(&dest, b"").unwrap();
         }
@@ -46,7 +46,7 @@ fn build_agent(workspace: &Path, out_dir: &Path, target: &str, dest: &Path) -> b
     let linker_var = format!("CARGO_TARGET_{}_LINKER", target.to_uppercase().replace('-', "_"));
     let status = Command::new(env::var("CARGO").unwrap_or_else(|_| "cargo".into()))
         .current_dir(workspace)
-        .args(["build", "--release", "-p", "devfwd-agent", "--target", target, "--target-dir"])
+        .args(["build", "--release", "-p", "zportforward-agent", "--target", target, "--target-dir"])
         .arg(&target_dir)
         // rust-lld ships with rustc and links the self-contained musl targets
         // from any host, so no cross toolchain is needed.
@@ -59,7 +59,7 @@ fn build_agent(workspace: &Path, out_dir: &Path, target: &str, dest: &Path) -> b
         .status();
     match status {
         Ok(s) if s.success() => {
-            fs::copy(target_dir.join(target).join("release/devfwd-agent"), dest).is_ok()
+            fs::copy(target_dir.join(target).join("release/zportforward-agent"), dest).is_ok()
         }
         _ => false,
     }

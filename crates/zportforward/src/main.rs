@@ -17,7 +17,7 @@ use runtime::Runtime;
 /// Log to stderr with a common prefix.
 #[macro_export]
 macro_rules! log {
-    ($($arg:tt)*) => { eprintln!("devfwd: {}", format!($($arg)*)) };
+    ($($arg:tt)*) => { eprintln!("zportforward: {}", format!($($arg)*)) };
 }
 
 #[derive(Parser)]
@@ -93,7 +93,7 @@ fn parse_port_spec(spec: &str) -> Result<(u16, Option<u16>)> {
 #[tokio::main]
 async fn main() {
     if let Err(e) = run(Cli::parse()).await {
-        eprintln!("devfwd: error: {e:#}");
+        eprintln!("zportforward: error: {e:#}");
         std::process::exit(1);
     }
 }
@@ -144,7 +144,7 @@ async fn run(cli: Cli) -> Result<()> {
 /// The address of the daemon's ports page, starting the daemon if needed.
 pub async fn ports_page_url() -> Result<String> {
     let response = Client::connect_or_start().await?.request(&Request::List).await?;
-    response.daemon.ui_url.context("the ports page is turned off (DEVFWD_UI_PORT=0) or could not bind a port")
+    response.daemon.ui_url.context("the ports page is turned off (ZPORTFORWARD_UI_PORT=0) or could not bind a port")
 }
 
 pub fn open_browser(url: &str) -> std::io::Result<()> {

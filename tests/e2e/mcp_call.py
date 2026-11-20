@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Call one tool on `devfwd mcp` the way an editor would.
+"""Call one tool on `zportforward mcp` the way an editor would.
 
-    mcp_call.py <devfwd binary> <tool> [json arguments]
+    mcp_call.py <zportforward binary> <tool> [json arguments]
 
 Prints the tool's text result; exits 1 if the tool reported an error.
 """
@@ -24,7 +24,7 @@ def reply(request_id):
         message = json.loads(line)
         if message.get("id") == request_id:
             return message
-    sys.exit("devfwd mcp closed the connection")
+    sys.exit("zportforward mcp closed the connection")
 
 
 send({"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {

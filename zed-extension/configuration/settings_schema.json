@@ -6,9 +6,9 @@
       "type": "boolean",
       "description": "Also forward ports that start listening later (below 32768)."
     },
-    "devfwd_path": {
+    "binary_path": {
       "type": "string",
-      "description": "Use this devfwd binary instead of the one the extension downloads: an absolute path, or a name to look up on PATH."
+      "description": "Use this zportforward binary instead of the one the extension downloads: an absolute path, or a name to look up on PATH."
     }
   }
 }

@@ -10,7 +10,7 @@ use std::mem::size_of;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use devfwd_proto::Listener;
+use zportforward_proto::Listener;
 
 const NETLINK_SOCK_DIAG: libc::c_int = 4;
 const SOCK_DIAG_BY_FAMILY: u16 = 20;

@@ -1,11 +1,11 @@
-//! Zed extension for devfwd.
+//! Zed extension for zportforward.
 //!
-//! * Downloads the `devfwd` binary for this machine from GitHub releases and
+//! * Downloads the `zportforward` binary for this machine from GitHub releases and
 //!   keeps it up to date; nothing has to be installed by hand.
 //! * Registers it as a context server, so the agent gets `list_ports`,
 //!   `forward_port`, `stop_forward` and `open_ports_page`. Zed runs extension
 //!   context servers on the local machine even when the project is open in a
-//!   dev container, which is exactly where devfwd must run.
+//!   dev container, which is exactly where zportforward must run.
 //! * Adds the `/ports` slash command, which opens the ports page.
 
 use std::fs;
@@ -16,14 +16,14 @@ use zed_extension_api::{
     SlashCommandOutput, SlashCommandOutputSection, Worktree,
 };
 
-/// GitHub repository whose releases carry the `devfwd` binaries.
-const REPO: &str = "RaHus/devfwd";
+/// GitHub repository whose releases carry the `zportforward` binaries.
+const REPO: &str = "RaHus/zportforward";
 /// Where the daemon serves the ports page unless that port was taken.
 const PORTS_PAGE: &str = "http://127.0.0.1:4480/";
-/// Downloaded versions live in `<work dir>/devfwd-<version>/`.
-const DIR_PREFIX: &str = "devfwd-";
+/// Downloaded versions live in `<work dir>/zportforward-<version>/`.
+const DIR_PREFIX: &str = "zportforward-";
 
-struct DevfwdExtension {
+struct ZportforwardExtension {
     /// Path of the downloaded binary, relative to the extension's work
     /// directory. Set once per session, after checking for a newer release.
     downloaded: Option<String>,
@@ -38,7 +38,7 @@ struct Platform {
 }
 
 fn platform() -> Result<Platform> {
-    let tar = |target| Platform { target, archive: "tar.gz", file_type: DownloadedFileType::GzipTar, binary: "devfwd" };
+    let tar = |target| Platform { target, archive: "tar.gz", file_type: DownloadedFileType::GzipTar, binary: "zportforward" };
     Ok(match zed::current_platform() {
         (Os::Linux, Architecture::X8664) => tar("x86_64-unknown-linux-musl"),
         (Os::Linux, Architecture::Aarch64) => tar("aarch64-unknown-linux-musl"),
@@ -48,9 +48,9 @@ fn platform() -> Result<Platform> {
             target: "x86_64-pc-windows-msvc",
             archive: "zip",
             file_type: DownloadedFileType::Zip,
-            binary: "devfwd.exe",
+            binary: "zportforward.exe",
         },
-        (os, arch) => return Err(format!("devfwd has no prebuilt binary for {os:?} {arch:?}; set devfwd_path")),
+        (os, arch) => return Err(format!("zportforward has no prebuilt binary for {os:?} {arch:?}; set binary_path")),
     })
 }
 
@@ -81,7 +81,7 @@ fn installed(binary: &str) -> Option<String> {
 fn download(platform: &Platform) -> Result<String> {
     let release =
         zed::latest_github_release(REPO, GithubReleaseOptions { require_assets: true, pre_release: false })?;
-    let asset_name = format!("devfwd-{}.{}", platform.target, platform.archive);
+    let asset_name = format!("zportforward-{}.{}", platform.target, platform.archive);
     let asset = release
         .assets
         .iter()
@@ -101,7 +101,7 @@ fn download(platform: &Platform) -> Result<String> {
     Ok(path)
 }
 
-impl DevfwdExtension {
+impl ZportforwardExtension {
     /// The downloaded binary, relative to the work directory.
     fn binary(&mut self) -> Result<String> {
         if let Some(path) = self.downloaded.as_ref().filter(|path| is_file(path)) {
@@ -112,8 +112,8 @@ impl DevfwdExtension {
             Ok(path) => path,
             Err(error) => installed(platform.binary).ok_or_else(|| {
                 format!(
-                    "could not download devfwd from github.com/{REPO}: {error}. \
-                     Install devfwd yourself and set `devfwd_path` in this server's settings."
+                    "could not download zportforward from github.com/{REPO}: {error}. \
+                     Install zportforward yourself and set `binary_path` in this server's settings."
                 )
             })?,
         };
@@ -142,7 +142,7 @@ fn launch_command(path: &str, os: Os) -> (String, Vec<String>) {
     }
 }
 
-impl zed::Extension for DevfwdExtension {
+impl zed::Extension for ZportforwardExtension {
     fn new() -> Self {
         Self { downloaded: None }
     }
@@ -155,13 +155,13 @@ impl zed::Extension for DevfwdExtension {
         let settings = ContextServerSettings::for_project(context_server_id.as_ref(), project)?;
         let custom = settings.settings.as_ref();
         let custom_path =
-            custom.and_then(|s| s.get("devfwd_path")).and_then(|v| v.as_str()).filter(|p| !p.is_empty());
+            custom.and_then(|s| s.get("binary_path")).and_then(|v| v.as_str()).filter(|p| !p.is_empty());
         let auto = custom.and_then(|s| s.get("auto")).and_then(|v| v.as_bool()).unwrap_or(false);
 
         let mut env = Vec::new();
         if auto {
-            // Tells devfwd to turn auto-forwarding on in the daemon.
-            env.push(("DEVFWD_AUTO".to_string(), "1".to_string()));
+            // Tells zportforward to turn auto-forwarding on in the daemon.
+            env.push(("ZPORTFORWARD_AUTO".to_string(), "1".to_string()));
         }
         let (command, args) = match custom_path {
             Some(path) => launch_command(path, zed::current_platform().0),
@@ -194,7 +194,7 @@ impl zed::Extension for DevfwdExtension {
         if command.name != "ports" {
             return Err(format!("unknown slash command: {}", command.name));
         }
-        // `devfwd ui` starts the daemon if needed, opens the browser and
+        // `zportforward ui` starts the daemon if needed, opens the browser and
         // prints the page's real address. Processes need an absolute path.
         let opened = platform().ok().and_then(|p| installed(p.binary)).and_then(|relative| {
             let binary = std::env::current_dir().ok()?.join(relative);
@@ -203,17 +203,17 @@ impl zed::Extension for DevfwdExtension {
             (output.status == Some(0) && address.starts_with("http")).then_some(address)
         });
         let text = match opened {
-            Some(address) => format!("Opened the devfwd ports page: {address}\n"),
-            None => format!("devfwd ports page: {PORTS_PAGE}\n"),
+            Some(address) => format!("Opened the zportforward ports page: {address}\n"),
+            None => format!("zportforward ports page: {PORTS_PAGE}\n"),
         };
         Ok(SlashCommandOutput {
             sections: vec![SlashCommandOutputSection {
                 range: (0..text.len()).into(),
-                label: "devfwd ports".to_string(),
+                label: "zportforward ports".to_string(),
             }],
             text,
         })
     }
 }
 
-zed::register_extension!(DevfwdExtension);
+zed::register_extension!(ZportforwardExtension);

@@ -1,4 +1,4 @@
-//! In-container half of devfwd. Started by the host as
+//! In-container half of zportforward. Started by the host as
 //! `docker exec -i <container> <agent> serve`; speaks yamux on stdio.
 
 mod procnet;
@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 use std::time::Instant;
 
 use anyhow::Result;
-use devfwd_proto::{self as proto, ControlMsg, Listener, Mode, Opener, Stream};
+use zportforward_proto::{self as proto, ControlMsg, Listener, Mode, Opener, Stream};
 use futures::AsyncReadExt;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -23,11 +23,11 @@ fn main() {
         Some("serve") => {}
         Some("scan") => return print_scan(),
         Some("--version") => {
-            println!("devfwd-agent {VERSION} proto {}", proto::PROTO_VERSION);
+            println!("zportforward-agent {VERSION} proto {}", proto::PROTO_VERSION);
             return;
         }
         _ => {
-            eprintln!("devfwd-agent is started by devfwd; usage: devfwd-agent serve | scan");
+            eprintln!("zportforward-agent is started by zportforward; usage: zportforward-agent serve | scan");
             std::process::exit(2);
         }
     }
@@ -147,7 +147,7 @@ async fn control(opener: Opener) -> Result<()> {
     }
 }
 
-/// `devfwd-agent scan`: print what a scan finds and what each method costs.
+/// `zportforward-agent scan`: print what a scan finds and what each method costs.
 fn print_scan() {
     for l in scan::listeners() {
         println!("{:>5}  {}", l.port, if l.loopback { "loopback only" } else { "all interfaces" });

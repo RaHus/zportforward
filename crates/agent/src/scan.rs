@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
 
-use devfwd_proto::Listener;
+use zportforward_proto::Listener;
 
 /// All listening TCP ports. Uses a netlink query limited to listening
 /// sockets where possible; reading `/proc/net/tcp` makes the kernel walk

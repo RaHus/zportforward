@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use devfwd_proto::Listener;
+use zportforward_proto::Listener;
 
 const TCP_LISTEN: &str = "0A";
 

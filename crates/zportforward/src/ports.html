@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>devfwd ports</title>
+<title>zportforward ports</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -108,7 +108,7 @@ function say(text, isError) {
 async function api(path, body) {
   const options = body === undefined ? {} : {
     method: "POST",
-    headers: { "content-type": "application/json", "x-devfwd": "1" },
+    headers: { "content-type": "application/json", "x-zportforward": "1" },
     body: JSON.stringify(body),
   };
   const response = await fetch(path, options);
@@ -202,7 +202,7 @@ function updateCard(card, container) {
 }
 
 function render(data) {
-  document.getElementById("version").textContent = "devfwd " + data.daemon.version;
+  document.getElementById("version").textContent = "zportforward " + data.daemon.version;
   autoBox.checked = data.daemon.auto;
   const seen = new Set();
   for (const container of data.containers) {
@@ -235,7 +235,7 @@ async function refresh() {
     if (failing) { failing = false; say("Reconnected"); }
   } catch (error) {
     failing = true;
-    say("Cannot reach the devfwd daemon. Run `devfwd ui` to start it again.", true);
+    say("Cannot reach the zportforward daemon. Run `zportforward ui` to start it again.", true);
   }
 }
 

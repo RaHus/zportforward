@@ -105,10 +105,10 @@ fn yes() -> bool {
 fn socket_name() -> Result<Name<'static>> {
     use interprocess::local_socket::{GenericFilePath, ToFsName};
     let path = match std::env::var_os("XDG_RUNTIME_DIR") {
-        Some(dir) => PathBuf::from(dir).join("devfwd.sock"),
+        Some(dir) => PathBuf::from(dir).join("zportforward.sock"),
         None => {
             let user = std::env::var("USER").unwrap_or_else(|_| "user".into());
-            std::env::temp_dir().join(format!("devfwd-{user}.sock"))
+            std::env::temp_dir().join(format!("zportforward-{user}.sock"))
         }
     };
     Ok(path.to_fs_name::<GenericFilePath>()?)
@@ -118,7 +118,7 @@ fn socket_name() -> Result<Name<'static>> {
 fn socket_name() -> Result<Name<'static>> {
     use interprocess::local_socket::{GenericNamespaced, ToNsName};
     let user = std::env::var("USERNAME").unwrap_or_else(|_| "user".into());
-    Ok(format!("devfwd-{user}").to_ns_name::<GenericNamespaced>()?)
+    Ok(format!("zportforward-{user}").to_ns_name::<GenericNamespaced>()?)
 }
 
 /// Held by the daemon for its whole life, so that clients starting it at the
@@ -127,7 +127,7 @@ pub fn lock_path() -> PathBuf {
     let dir = std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from).unwrap_or_else(|| {
         log_path().parent().map(PathBuf::from).unwrap_or_else(std::env::temp_dir)
     });
-    dir.join("devfwd.lock")
+    dir.join("zportforward.lock")
 }
 
 pub fn listen() -> Result<Listener> {
@@ -205,7 +205,7 @@ pub fn log_path() -> PathBuf {
         .or_else(|| std::env::var_os("LOCALAPPDATA").map(PathBuf::from))
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/state")))
         .unwrap_or_else(std::env::temp_dir);
-    base.join("devfwd").join("daemon.log")
+    base.join("zportforward").join("daemon.log")
 }
 
 fn spawn_daemon() -> Result<()> {
@@ -216,7 +216,7 @@ fn spawn_daemon() -> Result<()> {
     let log_file = std::fs::OpenOptions::new().create(true).append(true).open(&log)?;
     let mut cmd = std::process::Command::new(std::env::current_exe()?);
     cmd.args(["daemon", "--on-demand"]).stdin(Stdio::null()).stdout(Stdio::null()).stderr(log_file);
-    if std::env::var_os("DEVFWD_AUTO").is_some() {
+    if std::env::var_os("ZPORTFORWARD_AUTO").is_some() {
         cmd.arg("--auto");
     }
     #[cfg(unix)]

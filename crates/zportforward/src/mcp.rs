@@ -1,4 +1,4 @@
-//! `devfwd mcp`: an MCP server on stdio that proxies to the daemon, so an
+//! `zportforward mcp`: an MCP server on stdio that proxies to the daemon, so an
 //! editor's agent can list and forward ports.
 
 use anyhow::Result;
@@ -82,7 +82,7 @@ impl Server {
     }
 
     #[tool(
-        description = "Open the devfwd ports page in the user's browser: a live view of every dev \
+        description = "Open the zportforward ports page in the user's browser: a live view of every dev \
                        container's forwarded ports, with controls to add and remove forwards. \
                        Returns the page's address."
     )]
@@ -114,7 +114,7 @@ impl Server {
 impl ServerHandler for Server {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
-            .with_server_info(Implementation::new("devfwd", env!("CARGO_PKG_VERSION")))
+            .with_server_info(Implementation::new("zportforward", env!("CARGO_PKG_VERSION")))
             .with_instructions(
                 "Forwards ports from running dev containers to 127.0.0.1 on the user's machine. \
                  Ports listed in devcontainer.json `forwardPorts` are forwarded automatically; \
@@ -133,7 +133,7 @@ async fn prepare_daemon() -> Result<()> {
         client.stop().await?;
         client = Client::connect_or_start().await?;
     }
-    if std::env::var_os("DEVFWD_AUTO").is_some() {
+    if std::env::var_os("ZPORTFORWARD_AUTO").is_some() {
         client.request(&Request::SetAuto { on: true }).await?;
     }
     Ok(())

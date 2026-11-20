@@ -1,19 +1,19 @@
-id = "devfwd"
-name = "devfwd"
+id = "zportforward"
+name = "zportforward"
 description = "Port forwarding for dev containers: forwardPorts work automatically, plus a ports page and agent tools to forward ports on the fly."
 version = "0.1.0"
 schema_version = 1
 authors = ["RamiC"]
-repository = "https://github.com/RaHus/devfwd"
+repository = "https://github.com/RaHus/zportforward"
 
-[context_servers.devfwd]
-name = "devfwd"
+[context_servers.zportforward]
+name = "zportforward"
 
 [slash_commands.ports]
-description = "Open the devfwd ports page"
+description = "Open the zportforward ports page"
 requires_argument = false
 
-# `/ports` runs the downloaded devfwd binary as `devfwd ui` to open the page.
+# `/ports` runs the downloaded zportforward binary as `zportforward ui` to open the page.
 [[capabilities]]
 kind = "process:exec"
 command = "*"

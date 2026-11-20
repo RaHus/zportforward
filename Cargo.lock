@@ -299,49 +299,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "devfwd"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "clap",
- "devfwd-proto",
- "futures",
- "interprocess",
- "jsonc-parser",
- "rmcp",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "devfwd-agent"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "devfwd-proto",
- "futures",
- "libc",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "devfwd-proto"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "futures",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "yamux",
-]
-
-[[package]]
 name = "digest"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1429,3 +1386,46 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+
+[[package]]
+name = "zportforward"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "clap",
+ "futures",
+ "interprocess",
+ "jsonc-parser",
+ "rmcp",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "zportforward-proto",
+]
+
+[[package]]
+name = "zportforward-agent"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures",
+ "libc",
+ "tokio",
+ "tokio-util",
+ "zportforward-proto",
+]
+
+[[package]]
+name = "zportforward-proto"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "yamux",
+]

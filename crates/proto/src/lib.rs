@@ -1,4 +1,4 @@
-//! Wire protocol shared by the host (`devfwd`) and the in-container agent.
+//! Wire protocol shared by the host (`zportforward`) and the in-container agent.
 //!
 //! One yamux connection runs over the stdio of `docker exec -i`. The host is
 //! the yamux client, the agent the server.

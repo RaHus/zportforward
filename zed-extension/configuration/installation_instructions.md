@@ -1,5 +1,5 @@
-devfwd forwards ports from running dev containers to `127.0.0.1` on your machine.
-There is nothing to install: the extension downloads `devfwd` for you, and the
+zportforward forwards ports from running dev containers to `127.0.0.1` on your machine.
+There is nothing to install: the extension downloads `zportforward` for you, and the
 only requirement is a working `docker` (or `podman`) command.
 
 **[Open the ports page](http://127.0.0.1:4480/)** to see every forwarded port and
@@ -12,4 +12,4 @@ as the container runs.
 Settings, all optional:
 
 - `auto`: also forward ports that start listening later (below 32768).
-- `devfwd_path`: use your own `devfwd` binary instead of the downloaded one.
+- `binary_path`: use your own `zportforward` binary instead of the downloaded one.
