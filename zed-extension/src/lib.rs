@@ -6,20 +6,16 @@
 //!   `forward_port`, `stop_forward` and `open_ports_page`. Zed runs extension
 //!   context servers on the local machine even when the project is open in a
 //!   dev container, which is exactly where zportforward must run.
-//! * Adds the `/ports` slash command, which opens the ports page.
 
 use std::fs;
 
 use zed_extension_api::{
     self as zed, settings::ContextServerSettings, Architecture, Command, ContextServerConfiguration,
-    ContextServerId, DownloadedFileType, GithubReleaseOptions, Os, Project, Result, SlashCommand,
-    SlashCommandOutput, SlashCommandOutputSection, Worktree,
+    ContextServerId, DownloadedFileType, GithubReleaseOptions, Os, Project, Result,
 };
 
 /// GitHub repository whose releases carry the `zportforward` binaries.
 const REPO: &str = "RaHus/zportforward";
-/// Where the daemon serves the ports page unless that port was taken.
-const PORTS_PAGE: &str = "http://127.0.0.1:4480/";
 /// Downloaded versions live in `<work dir>/zportforward-<version>/`.
 const DIR_PREFIX: &str = "zportforward-";
 
@@ -182,37 +178,6 @@ impl zed::Extension for ZportforwardExtension {
             default_settings: include_str!("../configuration/default_settings.jsonc").to_string(),
             settings_schema: include_str!("../configuration/settings_schema.json").to_string(),
         }))
-    }
-
-    /// `/ports`: open the ports page in the browser and leave its address in the thread.
-    fn run_slash_command(
-        &self,
-        command: SlashCommand,
-        _args: Vec<String>,
-        _worktree: Option<&Worktree>,
-    ) -> Result<SlashCommandOutput, String> {
-        if command.name != "ports" {
-            return Err(format!("unknown slash command: {}", command.name));
-        }
-        // `zportforward ui` starts the daemon if needed, opens the browser and
-        // prints the page's real address. Processes need an absolute path.
-        let opened = platform().ok().and_then(|p| installed(p.binary)).and_then(|relative| {
-            let binary = std::env::current_dir().ok()?.join(relative);
-            let output = zed::process::Command::new(binary.to_string_lossy()).arg("ui").output().ok()?;
-            let address = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            (output.status == Some(0) && address.starts_with("http")).then_some(address)
-        });
-        let text = match opened {
-            Some(address) => format!("Opened the zportforward ports page: {address}\n"),
-            None => format!("zportforward ports page: {PORTS_PAGE}\n"),
-        };
-        Ok(SlashCommandOutput {
-            sections: vec![SlashCommandOutputSection {
-                range: (0..text.len()).into(),
-                label: "zportforward ports".to_string(),
-            }],
-            text,
-        })
     }
 }
 

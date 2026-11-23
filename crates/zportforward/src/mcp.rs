@@ -2,10 +2,16 @@
 //! editor's agent can list and forward ports.
 
 use anyhow::Result;
+use rmcp::handler::server::router::prompt::PromptRouter;
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
-use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
-use rmcp::{schemars, tool, tool_handler, tool_router, ErrorData, ServerHandler, ServiceExt};
+use rmcp::model::{
+    CallToolResult, ContentBlock, Implementation, PromptMessage, Role, ServerCapabilities, ServerConfig,
+};
+use rmcp::{
+    prompt, prompt_handler, prompt_router, schemars, tool, tool_handler, tool_router, ErrorData, ServerHandler,
+    ServiceExt,
+};
 use serde::Deserialize;
 
 use crate::control::{Client, Request, Response};
@@ -13,6 +19,7 @@ use crate::control::{Client, Request, Response};
 #[derive(Clone)]
 struct Server {
     tool_router: ToolRouter<Self>,
+    prompt_router: PromptRouter<Self>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -51,7 +58,7 @@ fn reply(result: Result<String>) -> std::result::Result<CallToolResult, ErrorDat
 #[tool_router]
 impl Server {
     fn new() -> Self {
-        Self { tool_router: Self::tool_router() }
+        Self { tool_router: Self::tool_router(), prompt_router: Self::prompt_router() }
     }
 
     #[tool(
@@ -110,10 +117,37 @@ impl Server {
     }
 }
 
+#[prompt_router]
+impl Server {
+    /// Editors show prompts as slash commands, which makes this the closest
+    /// thing to a "ports" action inside an agent thread: it opens the page
+    /// as a side effect and hands the model a one-line note to acknowledge.
+    #[prompt(name = "ports", description = "Open the zportforward ports page in the browser")]
+    async fn ports(&self) -> Vec<PromptMessage> {
+        let opened = async {
+            let url = crate::ports_page_url().await?;
+            crate::open_browser(&url)?;
+            anyhow::Ok(url)
+        };
+        let text = match opened.await {
+            Ok(url) => format!(
+                "The zportforward ports page was just opened in my browser at {url}. \
+                 Nothing else is needed: confirm in one short line and do not call any tools."
+            ),
+            Err(e) => format!(
+                "Opening the zportforward ports page failed: {e:#}. \
+                 Tell me in one or two lines what went wrong; do not call any tools."
+            ),
+        };
+        vec![PromptMessage::new_text(Role::User, text)]
+    }
+}
+
 #[tool_handler(router = self.tool_router)]
+#[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for Server {
     fn get_info(&self) -> ServerConfig {
-        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().enable_prompts().build())
             .with_server_info(Implementation::new("zportforward", env!("CARGO_PKG_VERSION")))
             .with_instructions(
                 "Forwards ports from running dev containers to 127.0.0.1 on the user's machine. \

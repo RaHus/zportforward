@@ -78,10 +78,15 @@ The extension in `zed-extension/`:
 
 - downloads `zportforward` and starts it when Zed starts, so `forwardPorts` work without any action;
 - gives the agent the tools `list_ports`, `forward_port`, `stop_forward` and `open_ports_page`;
-- adds the `/ports` slash command, which opens the ports page;
-- links the ports page from its configuration window.
+- links the ports page from its configuration window, with a keymap snippet to open it by key.
 
-Zed extensions cannot add panels, which is why the ports view is a web page.
+The MCP server also offers a `ports` prompt, which Zed's agent shows as the `/ports` command; it
+opens the ports page. Zed extensions cannot add panels, actions or key bindings, which is why the
+ports view is a web page and the key binding is a snippet you add yourself:
+
+```json
+[{ "bindings": { "alt-shift-p": ["zed::OpenBrowser", { "url": "http://127.0.0.1:4480/" }] } }]
+```
 
 With several dev containers running, the agent has to name the container it means; Zed does not
 tell a context server which project it belongs to. The ports page shows all of them.

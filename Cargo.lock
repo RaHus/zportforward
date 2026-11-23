@@ -1389,7 +1389,7 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 [[package]]
 name = "zportforward"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -1407,7 +1407,7 @@ dependencies = [
 
 [[package]]
 name = "zportforward-agent"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "futures",
@@ -1419,7 +1419,7 @@ dependencies = [
 
 [[package]]
 name = "zportforward-proto"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "futures",

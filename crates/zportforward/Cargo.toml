@@ -8,7 +8,7 @@ license.workspace = true
 anyhow = "1.0.104"
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio"] }
 clap = { version = "4.6.8", features = ["derive"] }
-zportforward-proto = { version = "0.1.1", path = "../proto" }
+zportforward-proto = { version = "0.1.2", path = "../proto" }
 futures = "0.3.34"
 interprocess = { version = "2.4.9", features = ["tokio"] }
 jsonc-parser = { version = "0.34.0", features = ["serde"] }
